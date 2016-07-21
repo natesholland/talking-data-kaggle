@@ -1,3 +1,6 @@
+# ignore the data sets as they are too large
+*.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
