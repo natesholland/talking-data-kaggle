@@ -1,5 +1,25 @@
 import psycopg2
 import os
+import fileinput
+import re
+
+from tempfile import mkstemp
+from shutil import move
+from os import remove, close
+
+
+def replace(file_path, pattern, subst):
+    #Create temp file
+    fh, abs_path = mkstemp()
+    with open(abs_path,'w') as new_file:
+        with open(file_path) as old_file:
+            for line in old_file:
+                new_file.write(line.replace(pattern, subst))
+    close(fh)
+    #Remove original file
+    remove(file_path)
+    #Move new file
+    move(abs_path, file_path)
 
 appPath = os.path.dirname(os.path.realpath(__file__))
 
@@ -117,13 +137,24 @@ cur.execute(dropTableString)
 createTableString = """
 CREATE TABLE label_categories (
     label_id    integer,
-    category    varchar(40)
+    category    varchar(80)
 );
 """
 
 cur.execute(createTableString)
 
-f = open(appPath + '/data/label_categories.csv', 'r')
+file_path = appPath + '/data/label_categories.csv'
+
+replace(file_path, '"online shopping by group, like groupon"', 'online shopping by group like groupon')
+replace(file_path, '"online shopping, price comparing"', 'online shopping price comparing')
+replace(file_path, '"Jewelry, jewelry"', 'Jewelry jewelry')
+replace(file_path, '"Europe, the United States and Macao (aviation)"', 'Europe the United States and Macao (aviation)')
+replace(file_path, '"Hong Kong, Macao and Taiwan (aviation)"', '"Hong Kong Macao and Taiwan (aviation)"')
+replace(file_path, '"Europe, the United States and Macao (Travel)"', 'Europe the United States and Macao (Travel)')
+replace(file_path, '"Hong Kong, Macao and Taiwan (Travel)"', '"Hong Kong Macao and Taiwan (Travel)"')
+
+
+f = open(file_path, 'r')
 f.readline()
 
 cur.copy_from(f, 'label_categories', sep=',')
