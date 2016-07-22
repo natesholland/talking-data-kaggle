@@ -123,10 +123,10 @@ CREATE TABLE label_categories (
 
 cur.execute(createTableString)
 
-f = open(appPath + '/data/app_labels.csv', 'r')
+f = open(appPath + '/data/label_categories.csv', 'r')
 f.readline()
 
-cur.copy_from(f, 'app_labels', sep=',')
+cur.copy_from(f, 'label_categories', sep=',')
 
 # ------------------------------app_events-------------------------------------
 print("app_events importing...")
