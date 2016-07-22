@@ -1,3 +1,6 @@
+# Notice: This is partially copied from  ZFTurbo at:
+# https://www.kaggle.com/zfturbo/talkingdata-mobile-user-demographics/xgboost-simple-starter/discussion
+
 import datetime
 import pandas as pd
 import numpy as np
@@ -70,6 +73,3 @@ def write_submission_file(test, prediction):
 write_submission_file(test, prediction)
 
 # import code; code.interact(local=dict(globals(), **locals()))
-
-
-
