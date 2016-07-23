@@ -19,6 +19,8 @@ def map_column(table, f):
     table = table.replace({f: mappings})
     return table
 
+print("importing training data...")
+
 events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
 events['counts'] = events.groupby(['device_id'])['event_id'].transform('count')
 events_small = events[['device_id', 'counts']].drop_duplicates('device_id', keep='first')
@@ -38,8 +40,7 @@ train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
 train = pd.merge(train, events_small, how='left', on='device_id', left_index=True)
 train.fillna(-1, inplace=True)
 
-X_tr = train[['phone_brand', 'device_model', 'counts']].values
-y_tr = train['group'].values
+print("importing training data...")
 
 test = pd.read_csv("data/gender_age_test.csv", dtype={'device_id': np.str})
 test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
@@ -51,11 +52,30 @@ X_test = test[['phone_brand', 'device_model', 'counts']].values
 # This is what we can use for cross validation
 result = train_test_split(train)
 
+train_data = result[0]
+val_data = result[1]
+X_tr = train_data[['phone_brand', 'device_model', 'counts']].values
+y_tr = train_data['group'].values
+X_val = val_data[['phone_brand', 'device_model', 'counts']].values
+y_val = val_data['group'].values
+
+print('fitting data...')
 recognizer = RandomForestClassifier(10, max_depth=5)
 recognizer.fit(X_tr, y_tr)
 
-prediction = recognizer.predict_proba(X_test)
+print('prediting data...')
+prediction = recognizer.predict_proba(X_val)
 
+ll = log_loss(y_val, prediction)
+
+print "Log loss: " + str(ll)
+
+X_tr = train[['phone_brand', 'device_model', 'counts']].values
+y_tr = train['group'].values
+
+recognizer = RandomForestClassifier(10, max_depth=5)
+recognizer.fit(X_tr, y_tr)
+prediction = recognizer.predict_proba(X_test)
 
 def write_submission_file(test, prediction):
     now = datetime.datetime.now()
@@ -73,6 +93,7 @@ def write_submission_file(test, prediction):
         f.write(str1)
     f.close()
 
-write_submission_file(test, prediction)
+# uncomment this line if you want to write out a predition
+# write_submission_file(test, prediction)
 
 # import code; code.interact(local=dict(globals(), **locals()))
