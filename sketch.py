@@ -2,6 +2,7 @@
 # https://www.kaggle.com/zfturbo/talkingdata-mobile-user-demographics/xgboost-simple-starter/discussion
 
 import datetime
+import dateutil
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -18,6 +19,20 @@ def map_column(table, f):
         mappings[labels[i]] = i
     table = table.replace({f: mappings})
     return table
+
+def events_by_device_id(events, device_id):
+    return events.loc[ events['device_id'] == str(device_id) ]
+
+def timestamps_by_device_id(events, device_id):
+    return map(dateutil.parser.parse, events_by_device_id(events, 6783790059735370898)['timestamp'].values)
+
+def group_timestamps_to_array(events, device_id):
+    timestamps_by_device_id(events, device_id)
+    hours = map(lambda x: x.hour, timestamps_by_device_id(events, device_id))
+    result_array = np.zeros(24)
+    for hour in hours:
+        result_array[hour] += 1
+    return result_array
 
 print("importing training data...")
 
@@ -39,6 +54,8 @@ train = train.drop(['age'], axis=1)
 train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
 train = pd.merge(train, events_small, how='left', on='device_id', left_index=True)
 train.fillna(-1, inplace=True)
+
+import code; code.interact(local=dict(globals(), **locals()))
 
 print("importing training data...")
 
