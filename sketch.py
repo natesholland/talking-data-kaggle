@@ -5,7 +5,7 @@ import datetime
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import cross_val_score
+from sklearn.cross_validation import train_test_split
 from sklearn.metrics import log_loss
 
 # Helpful debugger line copied from here: https://gist.github.com/obfusk/208597ccc64bf9b436ed
@@ -47,6 +47,9 @@ test = pd.merge(test, events_small, how='left', on='device_id', left_index=True)
 test.fillna(-1, inplace=True)
 
 X_test = test[['phone_brand', 'device_model', 'counts']].values
+
+# This is what we can use for cross validation
+result = train_test_split(train)
 
 recognizer = RandomForestClassifier(10, max_depth=5)
 recognizer.fit(X_tr, y_tr)
