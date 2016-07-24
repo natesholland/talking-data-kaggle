@@ -38,7 +38,9 @@ print("importing training data...")
 
 events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
 events['counts'] = events.groupby(['device_id'])['event_id'].transform('count')
-events_small = events[['device_id', 'counts']].drop_duplicates('device_id', keep='first')
+events['mean_longitude'] = events.groupby(['device_id'])['longitude'].transform('mean')
+events['mean_latitude'] = events.groupby(['device_id'])['latitude'].transform('mean')
+events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude']].drop_duplicates('device_id', keep='first')
 
 pbd = pd.read_csv("data/phone_brand_device_model.csv", dtype={'device_id': np.str})
 pbd.drop_duplicates('device_id', keep='first', inplace=True)
@@ -55,7 +57,7 @@ train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
 train = pd.merge(train, events_small, how='left', on='device_id', left_index=True)
 train.fillna(-1, inplace=True)
 
-import code; code.interact(local=dict(globals(), **locals()))
+# import code; code.interact(local=dict(globals(), **locals()))
 
 print("importing training data...")
 
@@ -64,16 +66,16 @@ test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
 test = pd.merge(test, events_small, how='left', on='device_id', left_index=True)
 test.fillna(-1, inplace=True)
 
-X_test = test[['phone_brand', 'device_model', 'counts']].values
+X_test = test[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
 
 # This is what we can use for cross validation
 result = train_test_split(train)
 
 train_data = result[0]
 val_data = result[1]
-X_tr = train_data[['phone_brand', 'device_model', 'counts']].values
+X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
 y_tr = train_data['group'].values
-X_val = val_data[['phone_brand', 'device_model', 'counts']].values
+X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
 y_val = val_data['group'].values
 
 print('fitting data...')
@@ -85,9 +87,9 @@ prediction = recognizer.predict_proba(X_val)
 
 ll = log_loss(y_val, prediction)
 
-print "Log loss: " + str(ll)
+print("Log loss: " + str(ll))
 
-X_tr = train[['phone_brand', 'device_model', 'counts']].values
+X_tr = train[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
 y_tr = train['group'].values
 
 recognizer = RandomForestClassifier(10, max_depth=5)
