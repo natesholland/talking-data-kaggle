@@ -41,6 +41,9 @@ events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
 events['counts'] = events.groupby(['device_id'])['event_id'].transform('count')
 events['mean_longitude'] = events.groupby(['device_id'])['longitude'].transform('mean')
 events['mean_latitude'] = events.groupby(['device_id'])['latitude'].transform('mean')
+events['hour'] = events['timestamp'].apply(lambda x: "hour" + x[11:13])
+events['ones'] = 1
+pivoted = events.pivot(columns='hours', variable='ones')
 events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude']].drop_duplicates('device_id')
 
 pbd = pd.read_csv("data/phone_brand_device_model.csv", dtype={'device_id': np.str})
@@ -58,7 +61,7 @@ train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
 train = pd.merge(train, events_small, how='left', on='device_id', left_index=True)
 train.fillna(-1, inplace=True)
 
-# import code; code.interact(local=dict(globals(), **locals()))
+import code; code.interact(local=dict(globals(), **locals()))
 
 print("importing training data...")
 
