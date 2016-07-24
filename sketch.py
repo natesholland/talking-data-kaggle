@@ -10,6 +10,9 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import log_loss
 
+NUM_TREES = 100
+TREE_DEPTH = 12
+
 # Helpful debugger line copied from here: https://gist.github.com/obfusk/208597ccc64bf9b436ed
 # import code; code.interact(local=dict(globals(), **locals()))
 
@@ -92,8 +95,10 @@ else:
     X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].values
     y_val = val_data['group'].values
 
+# import code; code.interact(local=dict(globals(), **locals()))
+
 print('fitting data...')
-recognizer = RandomForestClassifier(10, max_depth=5)
+recognizer = RandomForestClassifier(NUM_TREES, max_depth=TREE_DEPTH)
 recognizer.fit(X_tr, y_tr)
 
 print('prediting data...')
@@ -109,7 +114,7 @@ print("Log loss: " + str(ll))
 X_tr = train[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].values
 y_tr = train['group'].values
 
-recognizer = RandomForestClassifier(20, max_depth=8)
+recognizer = RandomForestClassifier(NUM_TREES, max_depth=TREE_DEPTH)
 recognizer.fit(X_tr, y_tr)
 prediction = recognizer.predict_proba(X_test)
 
