@@ -41,10 +41,15 @@ events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
 events['counts'] = events.groupby(['device_id'])['event_id'].transform('count')
 events['mean_longitude'] = events.groupby(['device_id'])['longitude'].transform('mean')
 events['mean_latitude'] = events.groupby(['device_id'])['latitude'].transform('mean')
-events['hour'] = events['timestamp'].apply(lambda x: "hour" + x[11:13])
+events['hours'] = events['timestamp'].apply(lambda x: "hour" + x[11:13])
 events['ones'] = 1
-pivoted = events.pivot(columns='hours', variable='ones')
-events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude']].drop_duplicates('device_id')
+pivoted = events.pivot(columns='hours', values='ones')
+hour_column_names = list(pivoted.columns.values)
+pivoted['device_id'] = events['device_id']
+pivoted.fillna(0, inplace=True)
+for column in hour_column_names:
+    events[column] = pivoted.groupby(['device_id'])[column].transform('sum')
+events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].drop_duplicates('device_id')
 
 pbd = pd.read_csv("data/phone_brand_device_model.csv", dtype={'device_id': np.str})
 pbd.drop_duplicates('device_id', inplace=True)
@@ -61,8 +66,6 @@ train = pd.merge(train, pbd, how='left', on='device_id', left_index=True)
 train = pd.merge(train, events_small, how='left', on='device_id', left_index=True)
 train.fillna(-1, inplace=True)
 
-import code; code.interact(local=dict(globals(), **locals()))
-
 print("importing test data...")
 
 test = pd.read_csv("data/gender_age_test.csv", dtype={'device_id': np.str})
@@ -70,7 +73,7 @@ test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
 test = pd.merge(test, events_small, how='left', on='device_id', left_index=True)
 test.fillna(-1, inplace=True)
 
-X_test = test[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
+X_test = test[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].values
 
 # This is what we can use for cross validation
 result = train_test_split(train)
@@ -84,9 +87,9 @@ if (os.name == 'nt'):
     X_val = val_data[:, 2:]
     y_val = val_data[:, 1]
 else:
-    X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
+    X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].values
     y_tr = train_data['group'].values
-    X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
+    X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].values
     y_val = val_data['group'].values
 
 print('fitting data...')
@@ -103,16 +106,16 @@ else:
 
 print("Log loss: " + str(ll))
 
-X_tr = train[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
+X_tr = train[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].values
 y_tr = train['group'].values
 
-recognizer = RandomForestClassifier(10, max_depth=5)
+recognizer = RandomForestClassifier(20, max_depth=8)
 recognizer.fit(X_tr, y_tr)
 prediction = recognizer.predict_proba(X_test)
 
-def write_submission_file(test, prediction):
+def write_submission_file(test, prediction, log_loss):
     now = datetime.datetime.now()
-    sub_file = 'submission_' + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
+    sub_file = 'submission_' + str(log_loss) + '_' + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
     f = open(sub_file, 'w')
     f.write('device_id,F23-,F24-26,F27-28,F29-32,F33-42,F43+,M22-,M23-26,M27-28,M29-31,M32-38,M39+\n')
     total = 0
@@ -127,6 +130,6 @@ def write_submission_file(test, prediction):
     f.close()
 
 # uncomment this line if you want to write out a predition
-# write_submission_file(test, prediction)
+# write_submission_file(test, prediction, ll)
 
 # import code; code.interact(local=dict(globals(), **locals()))
