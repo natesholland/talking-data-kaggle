@@ -63,7 +63,7 @@ train.fillna(-1, inplace=True)
 
 import code; code.interact(local=dict(globals(), **locals()))
 
-print("importing training data...")
+print("importing test data...")
 
 test = pd.read_csv("data/gender_age_test.csv", dtype={'device_id': np.str})
 test = pd.merge(test, pbd, how='left', on='device_id', left_index=True)
