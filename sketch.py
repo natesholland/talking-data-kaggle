@@ -5,6 +5,7 @@ import datetime
 import dateutil
 import pandas as pd
 import numpy as np
+import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import log_loss
@@ -73,11 +74,17 @@ result = train_test_split(train)
 
 train_data = result[0]
 val_data = result[1]
-import code; code.interact(local=dict(globals(), **locals()))
-X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
-y_tr = train_data['group'].values
-X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
-y_val = val_data['group'].values
+# import code; code.interact(local=dict(globals(), **locals()))
+if (os.name == 'nt'):
+    X_tr = train_data[:, 2:]
+    y_tr = train_data[:, 1]
+    X_val = val_data[:, 2:]
+    y_val = val_data[:, 1]
+else:
+    X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
+    y_tr = train_data['group'].values
+    X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
+    y_val = val_data['group'].values
 
 print('fitting data...')
 recognizer = RandomForestClassifier(10, max_depth=5)
@@ -86,7 +93,10 @@ recognizer.fit(X_tr, y_tr)
 print('prediting data...')
 prediction = recognizer.predict_proba(X_val)
 
-ll = log_loss(y_val, prediction)
+if (os.name == 'nt'):
+    ll = log_loss(y_val.tolist(), prediction)
+else:
+    ll = log_loss(y_val, prediction)
 
 print("Log loss: " + str(ll))
 
