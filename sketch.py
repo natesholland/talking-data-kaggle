@@ -40,10 +40,10 @@ events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
 events['counts'] = events.groupby(['device_id'])['event_id'].transform('count')
 events['mean_longitude'] = events.groupby(['device_id'])['longitude'].transform('mean')
 events['mean_latitude'] = events.groupby(['device_id'])['latitude'].transform('mean')
-events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude']].drop_duplicates('device_id', keep='first')
+events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude']].drop_duplicates('device_id')
 
 pbd = pd.read_csv("data/phone_brand_device_model.csv", dtype={'device_id': np.str})
-pbd.drop_duplicates('device_id', keep='first', inplace=True)
+pbd.drop_duplicates('device_id', inplace=True)
 pbd = map_column(pbd, 'phone_brand')
 pbd = map_column(pbd, 'device_model')
 
@@ -73,6 +73,7 @@ result = train_test_split(train)
 
 train_data = result[0]
 val_data = result[1]
+import code; code.interact(local=dict(globals(), **locals()))
 X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
 y_tr = train_data['group'].values
 X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude']].values
