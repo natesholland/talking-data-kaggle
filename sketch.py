@@ -40,6 +40,8 @@ def group_timestamps_to_array(events, device_id):
 
 print("importing training data...")
 
+# import code; code.interact(local=dict(globals(), **locals()))
+print('opening events...')
 events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
 events['counts'] = events.groupby(['device_id'])['event_id'].transform('count')
 events['mean_longitude'] = events.groupby(['device_id'])['longitude'].transform('mean')
@@ -53,6 +55,26 @@ pivoted.fillna(0, inplace=True)
 for column in hour_column_names:
     events[column] = pivoted.groupby(['device_id'])[column].transform('sum')
 events_small = events[['device_id', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names].drop_duplicates('device_id')
+
+print('opening app labels...')
+app_labels = pd.read_csv("data/app_labels.csv", dtype={'app_id': np.str})
+app_labels['label_id'] = app_labels['label_id'].apply(lambda x: "cat:" + str(x))
+
+print('opening app events...')
+app_events = pd.read_csv("data/app_events.csv", dtype={'app_id': np.str})
+app_events = app_events[app_events.is_active == 1]
+app_events = pd.merge(app_events, app_labels, how='left', on='app_id', left_index=True)
+app_events['ones'] = 1
+print('beginning app events pivoting...')
+app_events_pivoted = app_events.pivot_table(index='event_id', columns='label_id', values='ones')
+category_columns = app_events_pivoted.columns.values
+app_events_pivoted['event_id'] = app_events_pivoted.index
+print('beginning app events summing...')
+for col in category_columns:
+    app_events_pivoted[col] = app_events_pivoted.groupby(['event_id'])[col].transform('sum')
+
+foobar = pd.merge(events, app_events_pivoted, how='left', on='event_id', left_index=True)
+import code; code.interact(local=dict(globals(), **locals()))
 
 pbd = pd.read_csv("data/phone_brand_device_model.csv", dtype={'device_id': np.str})
 pbd.drop_duplicates('device_id', inplace=True)
