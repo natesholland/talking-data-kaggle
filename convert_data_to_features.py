@@ -6,13 +6,6 @@ import dateutil
 import pandas as pd
 import numpy as np
 import os
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.cross_validation import train_test_split
-from sklearn.metrics import log_loss
-
-NUM_TREES = 500
-TREE_DEPTH = 20
-NUM_THREADS = 4
 
 # Helpful debugger line copied from here: https://gist.github.com/obfusk/208597ccc64bf9b436ed
 # import code; code.interact(local=dict(globals(), **locals()))
@@ -70,13 +63,9 @@ print('beginning app events pivoting...')
 app_events_pivoted = app_events.pivot_table(index='event_id', columns='label_id', values='ones')
 category_columns = list(app_events_pivoted.columns.values)
 app_events_pivoted['event_id'] = app_events_pivoted.index
-print('beginning app events summing...')
-for col in category_columns:
-    app_events_pivoted[col] = app_events_pivoted.groupby(['event_id'])[col].transform('sum')
 print('beginning app events merging...')
-# events = pd.merge(events, app_events_pivoted, how='left', on='event_id', left_index=True)
 events_to_device_id = events[['device_id', 'event_id']]
-foobar  = pd.merge(app_events_pivoted, events_to_device_id, how='left', on='event_id')
+foobar = pd.merge(app_events_pivoted, events_to_device_id, how='left', on='event_id')
 print('beginning summing over categories...')
 for col in category_columns:
     foobar[col] = foobar.groupby(['device_id'])[col].transform('sum')
@@ -116,66 +105,5 @@ f.close()
 f = open('data/test_features.csv', 'w')
 test.to_csv(path_or_buf=f)
 f.close()
-
-X_test = test[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names + category_columns].values
-
-# This is what we can use for cross validation
-result = train_test_split(train)
-
-train_data = result[0]
-val_data = result[1]
-# import code; code.interact(local=dict(globals(), **locals()))
-if (os.name == 'nt'):
-    X_tr = train_data[:, 2:]
-    y_tr = train_data[:, 1]
-    X_val = val_data[:, 2:]
-    y_val = val_data[:, 1]
-else:
-    X_tr = train_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names + category_columns].values
-    y_tr = train_data['group'].values
-    X_val = val_data[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names + category_columns].values
-    y_val = val_data['group'].values
-
-# import code; code.interact(local=dict(globals(), **locals()))
-
-print('fitting data...')
-recognizer = RandomForestClassifier(NUM_TREES, max_depth=TREE_DEPTH, verbose=1, n_jobs=NUM_THREADS)
-recognizer.fit(X_tr, y_tr)
-
-print('prediting data...')
-prediction = recognizer.predict_proba(X_val)
-
-if (os.name == 'nt'):
-    ll = log_loss(y_val.tolist(), prediction)
-else:
-    ll = log_loss(y_val, prediction)
-
-print("Log loss: " + str(ll))
-
-X_tr = train[['phone_brand', 'device_model', 'counts', 'mean_longitude', 'mean_latitude'] + hour_column_names + category_columns].values
-y_tr = train['group'].values
-
-recognizer = RandomForestClassifier(NUM_TREES, max_depth=TREE_DEPTH, verbose=1, n_jobs=NUM_THREADS)
-recognizer.fit(X_tr, y_tr)
-prediction = recognizer.predict_proba(X_test)
-
-def write_submission_file(test, prediction, log_loss):
-    now = datetime.datetime.now()
-    sub_file = 'submission_' + str(log_loss) + '_' + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv'
-    f = open(sub_file, 'w')
-    f.write('device_id,F23-,F24-26,F27-28,F29-32,F33-42,F43+,M22-,M23-26,M27-28,M29-31,M32-38,M39+\n')
-    total = 0
-    test_val = test['device_id'].values
-    for i in range(len(test_val)):
-        str1 = str(test_val[i])
-        for j in range(12):
-            str1 += ',' + str(prediction[i][j])
-        str1 += '\n'
-        total += 1
-        f.write(str1)
-    f.close()
-
-# uncomment this line if you want to write out a predition
-# write_submission_file(test, prediction, ll)
 
 # import code; code.interact(local=dict(globals(), **locals()))
