@@ -76,7 +76,7 @@ for col in category_columns:
 print('beginning app events merging...')
 # events = pd.merge(events, app_events_pivoted, how='left', on='event_id', left_index=True)
 events_to_device_id = events[['device_id', 'event_id']]
-foobar  = pd.merge(app_events_pivoted, events_to_device_id, how='left', on='event_id', left_index=True)
+foobar  = pd.merge(app_events_pivoted, events_to_device_id, how='left', on='event_id')
 print('beginning summing over categories...')
 for col in category_columns:
     foobar[col] = foobar.groupby(['device_id'])[col].transform('sum')
