@@ -1,5 +1,6 @@
 # ignore the data sets as they are too large
 *.csv
+*.csv.backup
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
