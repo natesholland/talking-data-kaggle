@@ -69,7 +69,7 @@ foobar = pd.merge(app_events_pivoted, events_to_device_id, how='left', on='event
 print('beginning summing over categories...')
 for col in category_columns:
     foobar[col] = foobar.groupby(['device_id'])[col].transform('sum')
-foobar.fillna(0, inplace=True)
+foobar.fillna(-1, inplace=True)
 foobar.drop('event_id', axis=1, inplace=True)
 
 print('importing phone device models...')

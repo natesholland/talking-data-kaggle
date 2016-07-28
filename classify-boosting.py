@@ -2,13 +2,24 @@ import pandas as pd
 import numpy as np
 import datetime
 import os
-from sklearn.ensemble import RandomForestClassifier
+import xgboost as xgb
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import log_loss
 
-NUM_TREES = 1500
-TREE_DEPTH = 20
-NUM_THREADS = 4
+params = {
+    "objective": "multi:softprob",
+    "num_class": 12,
+    "booster" : "gbtree",
+    "eval_metric": "mlogloss",
+    "eta": 0.3,
+    "max_depth": 6,
+    "subsample": 0.7,
+    "colsample_bytree": 0.7,
+    "silent": 1
+}
+
+early_stopping_rounds = 20
+num_boost_round = 500
 
 # import code; code.interact(local=dict(globals(), **locals()))
 
@@ -22,10 +33,13 @@ y_tr = list(train_data.values[:, 2])
 X_val = val_data.values[:, 3:]
 y_val = list(val_data.values[:, 2])
 
-recognizer = RandomForestClassifier(NUM_TREES, max_depth=TREE_DEPTH, verbose=1, n_jobs=NUM_THREADS)
-recognizer.fit(X_tr, y_tr)
+dtrain = xgb.DMatrix(X_tr, y_tr)
+dvalid = xgb.DMatrix(X_val, y_val)
+watchlist = [(dtrain, 'train'), (dvalid, 'eval')]
 
-prediction = recognizer.predict_proba(X_val)
+gbm = xgb.train(params, dtrain, num_boost_round, evals=watchlist, early_stopping_rounds=early_stopping_rounds, verbose_eval=True)
+
+prediction = gbm.predict(xgb.DMatrix(X_val), ntree_limit=gbm.best_iteration)
 
 if (os.name == 'nt'):
     ll = log_loss(y_val.tolist(), prediction)
@@ -39,9 +53,7 @@ y_tr = list(train_data.values[:, 2])
 
 X_test = test.values[:, 2:]
 
-recognizer = RandomForestClassifier(NUM_TREES, max_depth=TREE_DEPTH, verbose=1, n_jobs=NUM_THREADS)
-recognizer.fit(X_tr, y_tr)
-prediction = recognizer.predict_proba(X_test)
+prediction = gbm.predict(xgb.DMatrix(X_test), ntree_limit=gbm.best_iteration)
 
 def write_submission_file(test, prediction, log_loss):
     now = datetime.datetime.now()
