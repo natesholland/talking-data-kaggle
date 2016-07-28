@@ -1,11 +1,12 @@
 import pandas as pd
 import numpy as np
+import datetime
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import log_loss
 
-NUM_TREES = 500
+NUM_TREES = 1500
 TREE_DEPTH = 20
 NUM_THREADS = 4
 
@@ -59,4 +60,4 @@ def write_submission_file(test, prediction, log_loss):
     f.close()
 
 # uncomment this line if you want to write out a predition
-# write_submission_file(test, prediction, ll)
+write_submission_file(test, prediction, ll)
