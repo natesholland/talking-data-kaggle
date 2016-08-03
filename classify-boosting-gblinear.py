@@ -18,6 +18,8 @@ from sklearn.metrics import log_loss
 # first by event
 # then merge to generate larger bags by device
 
+# import code; code.interact(local=dict(globals(), **locals()))
+
 ##################
 #   App Events
 ##################
@@ -31,8 +33,20 @@ app_ev = app_ev.groupby("event_id")["app_id"].apply(
 #     Events
 ##################
 print("# Read Events")
-events = pd.read_csv("data/events.csv", dtype={'device_id': np.str})
+events = pd.read_csv("data/events_localized.csv", dtype={'device_id': np.str})
 events["app_id"] = events["event_id"].map(app_ev)
+events['local_hour'] = events['local_hour'].apply(lambda x: "local_hour:" + str(x))
+
+hours_of_day = events[["device_id", "local_hour"]]
+
+hours_of_day = hours_of_day.groupby("device_id")["local_hour"].apply(lambda x: " ".join(set(str(" ".join(str(s) for s in x)).split(" "))))
+
+hours_of_day = hours_of_day.reset_index(name="local_hour")
+
+hours_of_day = pd.concat([pd.Series(row['device_id'], row['local_hour'].split(' '))
+                    for _, row in hours_of_day.iterrows()]).reset_index()
+
+hours_of_day.columns = ['local_hour', 'device_id']
 
 events = events.dropna()
 
@@ -97,14 +111,16 @@ Df["device_model"] = Df["device_model"].apply(
 f1 = Df[["device_id", "phone_brand"]]   # phone_brand
 f2 = Df[["device_id", "device_model"]]  # device_model
 f3 = events[["device_id", "app_id"]]    # app_id
+f4 = hours_of_day[["device_id", "local_hour"]]
 
 del Df
 
 f1.columns.values[1] = "feature"
 f2.columns.values[1] = "feature"
 f3.columns.values[1] = "feature"
+f4.columns.values[1] = "feature"
 
-FLS = pd.concat((f1, f2, f3), axis=0, ignore_index=True)
+FLS = pd.concat((f1, f2, f3, f4), axis=0, ignore_index=True)
 
 
 ###################
@@ -135,7 +151,7 @@ test_row = dec.transform(test["device_id"])
 test_sp = sparse_matrix[test_row, :]
 
 X_train, X_val, y_train, y_val = train_test_split(
-    train_sp, Y, train_size=.90)
+    train_sp, Y, train_size=.90, random_state=10)
 
 ##################
 #   Feature Sel
@@ -185,4 +201,4 @@ result = pd.DataFrame(y_pre, columns=lable_group.classes_)
 result["device_id"] = device_id
 result = result.set_index("device_id")
 result.to_csv('fine_tune.csv', index=True,
-              index_label='device_id')
+          index_label='device_id')
