@@ -135,7 +135,7 @@ test_row = dec.transform(test["device_id"])
 test_sp = sparse_matrix[test_row, :]
 
 X_train, X_val, y_train, y_val = train_test_split(
-    train_sp, Y, train_size=.90, random_state=10)
+    train_sp, Y, train_size=.90)
 
 ##################
 #   Feature Sel
@@ -184,5 +184,5 @@ y_pre = gbm.predict(xgb.DMatrix(test_sp))
 result = pd.DataFrame(y_pre, columns=lable_group.classes_)
 result["device_id"] = device_id
 result = result.set_index("device_id")
-result.to_csv('fine_tune.gz', index=True,
-              index_label='device_id', compression="gzip")
+result.to_csv('fine_tune.csv', index=True,
+              index_label='device_id')
