@@ -39,7 +39,7 @@ events['local_hour'] = events['local_hour'].apply(lambda x: "local_hour:" + str(
 
 hours_of_day = events[["device_id", "local_hour"]]
 
-hours_of_day = hours_of_day.groupby("device_id")["local_hour"].apply(lambda x: " ".join(set(str(" ".join(str(s) for s in x)).split(" "))))
+hours_of_day = hours_of_day.groupby("device_id")["local_hour"].apply(lambda x: " ".join(str(" ".join(str(s) for s in x)).split(" ")))
 
 hours_of_day = hours_of_day.reset_index(name="local_hour")
 
@@ -85,6 +85,8 @@ train.drop(["age", "gender"], axis=1, inplace=True)
 test = pd.read_csv("data/gender_age_test.csv",
                    dtype={'device_id': np.str})
 test["group"] = np.nan
+
+import code; code.interact(local=dict(globals(), **locals()))
 
 
 split_len = len(train)
