@@ -15,7 +15,7 @@ from sklearn.base import BaseEstimator
 from sklearn.feature_selection import SelectFromModel,SelectPercentile,f_classif
 from sklearn.linear_model import Ridge,LogisticRegression
 from keras.preprocessing import sequence
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras import backend as K
 from keras.layers import Input, Embedding, LSTM, Dense,Flatten, Dropout, merge,Convolution1D,MaxPooling1D,Lambda
 from keras.layers.normalization import BatchNormalization
@@ -23,17 +23,12 @@ from keras.optimizers import SGD,Nadam
 from keras.layers.advanced_activations import PReLU,LeakyReLU,ELU,SReLU
 from keras.models import Model
 from keras.utils.visualize_util import plot
-import xgboost as xgb
 
 seed = 1024
-max_index_label = 1021
-dim = 128
-lsi_dim = 300
 
 path = "data/"
 
-
-
+# import code; code.interact(local=dict(globals(), **locals()))
 
 # Create bag-of-apps in character string format
 # first by event
@@ -217,10 +212,10 @@ outputs_gender = Dense(1,activation='sigmoid',name='outputs_gender')(dp1)
 # dp1_a = Dropout(0.5)(fc1_a)
 outputs_age = Dense(1,activation='linear',name='outputs_age')(dp1)
 
-# fc2 = Dense(512)(dp1)
-# fc2 = SReLU()(fc2)
-# dp2 = Dropout(0.5)(fc2)
-outputs = Dense(12,activation='softmax',name='outputs')(dp1)
+fc2 = Dense(512)(dp1)
+fc2 = SReLU()(fc2)
+dp2 = Dropout(0.5)(fc2)
+outputs = Dense(12,activation='softmax',name='outputs')(dp2)
 
 inputs = [
             inputs,
@@ -233,6 +228,7 @@ outputs = [
         ]
 
 model = Model(input=inputs, output=outputs)
+
 nadam = Nadam(lr=1e-4)
 sgd = SGD(lr=0.005, decay=1e-6, momentum=0.9, nesterov=True)
 # model.compile(
@@ -248,6 +244,7 @@ model.compile(
 
 model_name = 'mlp_%s.hdf5'%'sparse'
 model_checkpoint = ModelCheckpoint(path+model_name, monitor='val_outputs_loss', save_best_only=True)
+early_stopping = EarlyStopping(monitor='val_loss', patience=2, verbose=1, mode='auto')
 plot(model, to_file=path+'%s.png'%model_name.replace('.hdf5',''),show_shapes=True)
 
 nb_epoch = 20
@@ -259,7 +256,7 @@ if load_model:
     model.load_weights(path+model_name)
 
 model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=nb_epoch, verbose=1, shuffle=True,
-              callbacks=[model_checkpoint],
+              callbacks=[model_checkpoint, early_stopping],
               validation_data=[X_val,y_val]
               )
 model.load_weights(path+model_name)
