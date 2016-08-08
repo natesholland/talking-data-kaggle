@@ -41,6 +41,7 @@ print("# Read Phone Brand")
 pbd = pd.read_csv(path+"phone_brand_device_model.csv",
                   dtype={'device_id': np.str})
 pbd.drop_duplicates('device_id', keep='first', inplace=True)
+pbd['concated'] = pbd.apply( lambda x: x['phone_brand'] + x['device_model'], axis=1)
 
 
 ##################
@@ -78,6 +79,7 @@ Df = pd.merge(Df, pbd, how="left", on="device_id")
 Df["phone_brand"] = Df["phone_brand"].apply(lambda x: "phone_brand:" + str(x))
 Df["device_model"] = Df["device_model"].apply(
     lambda x: "device_model:" + str(x))
+Df["concated"] = Df["concated"].apply(lambda x: "concated:" + str(x))
 
 ###################
 #  Concat Feature
@@ -85,13 +87,15 @@ Df["device_model"] = Df["device_model"].apply(
 
 f1 = Df[["device_id", "phone_brand"]]   # phone_brand
 f2 = Df[["device_id", "device_model"]]  # device_model
+f3 = Df[["device_id", "concated"]]  # device_model
 
 del Df
 
 f1.columns.values[1] = "feature"
 f2.columns.values[1] = "feature"
+f3.columns.values[1] = "feature"
 
-FLS = pd.concat((f1, f2), axis=0, ignore_index=True)
+FLS = pd.concat((f1, f2, f3), axis=0, ignore_index=True)
 
 
 ###################
@@ -125,7 +129,16 @@ test_sp = sparse_matrix[test_row, :]
 
 skf = StratifiedKFold(Y, n_folds=10, shuffle=True)
 # skf = KFold(train.shape[0],n_folds=5, shuffle=True, random_state=seed)
+
+X_train = pd.read_csv(path+'gender_age_train.csv')
+group_le = LabelEncoder()
+group_lb = LabelBinarizer()
+labels = group_le.fit_transform(X_train['group'].values)
+labels = group_lb.fit_transform(labels)
+
+i = 0
 for ind_tr, ind_te in skf:
+    i +=1
     X_train = train_sp[ind_tr]
     X_val = train_sp[ind_te]
     y_train = Y[ind_tr]
@@ -139,15 +152,12 @@ for ind_tr, ind_te in skf:
     #   Feature Sel
     ##################
     print("# Feature Selection")
-    selector = SelectPercentile(f_classif, percentile=50)
+    selector = SelectPercentile(f_classif, percentile=100)
 
     selector.fit(X_train, y_train)
 
     X_train = selector.transform(X_train).toarray()
     X_val = selector.transform(X_val).toarray()
-
-    # train_sp = selector.transform(train_sp)
-    # test_sp = selector.transform(test_sp).toarray()
 
     print("# Num of Features: ", X_train.shape[1])
 
@@ -196,7 +206,7 @@ for ind_tr, ind_te in skf:
     model = Model(input=inputs, output=outputs)
 
     nadam = Nadam(lr=1e-3)
-    sgd = SGD(lr=0.009, decay=1e-6, momentum=0.9, nesterov=True)
+    sgd = SGD(lr=0.005, decay=1e-6, momentum=0.9, nesterov=True)
     # model.compile(
     #             optimizer=nadam,
     #             loss={'outputs': 'categorical_crossentropy'}
@@ -229,19 +239,22 @@ for ind_tr, ind_te in skf:
 
     losses.append(val_loss)
 
-print(losses)
-# model.load_weights(path+model_name)
-#
-# X_train = pd.read_csv(path+'gender_age_train.csv')
-# group_le = LabelEncoder()
-# group_lb = LabelBinarizer()
-# labels = group_le.fit_transform(X_train['group'].values)
-# labels = group_lb.fit_transform(labels)
-#
-#
-# device_id = pd.read_csv(path+'gender_age_test.csv')['device_id']
-#
-# y_preds = model.predict(test_sp)[0]
+    model.load_weights(path+model_name)
+
+    device_id = pd.read_csv(path+'gender_age_test.csv')['device_id']
+
+    test_tran = selector.transform(test_sp).toarray()
+
+    y_preds = model.predict(test_tran)[0]
+
+    submission = pd.DataFrame(y_preds, columns=group_le.classes_)
+    submission["device_id"] = device_id
+    submission = submission.set_index("device_id")
+    submission.to_csv('submission_nn_phone_device' + str(i) + '.csv', index=True, index_label='device_id')
+
+
+
+
 #
 # # Write results
 # submission = pd.DataFrame(y_preds, columns=group_le.classes_)
