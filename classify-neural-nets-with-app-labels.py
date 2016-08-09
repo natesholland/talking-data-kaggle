@@ -179,7 +179,7 @@ train_sp = sparse_matrix[train_row, :]
 test_row = dec.transform(test["device_id"])
 test_sp = sparse_matrix[test_row, :]
 
-skf = StratifiedKFold(Y, n_folds=10, shuffle=True, random_state=seed)
+skf = StratifiedKFold(Y, n_folds=10, shuffle=True)
 # skf = KFold(train.shape[0],n_folds=5, shuffle=True, random_state=seed)
 for ind_tr, ind_te in skf:
     X_train = train_sp[ind_tr]
