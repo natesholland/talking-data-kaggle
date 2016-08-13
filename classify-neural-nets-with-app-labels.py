@@ -23,6 +23,7 @@ from keras.optimizers import SGD,Nadam
 from keras.layers.advanced_activations import PReLU,LeakyReLU,ELU,SReLU
 from keras.models import Model
 from keras.utils.visualize_util import plot
+import datetime
 
 seed = 1024
 
@@ -300,4 +301,5 @@ y_preds = model.predict(test_sp)[0]
 submission = pd.DataFrame(y_preds, columns=group_le.classes_)
 submission["device_id"] = device_id
 submission = submission.set_index("device_id")
-submission.to_csv('submission_mlp_sparse.csv', index=True, index_label='device_id')
+now = datetime.datetime.now()
+submission.to_csv('submission_mlp_sparse_' + str(now.strftime("%Y-%m-%d-%H-%M")) + '.csv', index=True, index_label='device_id')
