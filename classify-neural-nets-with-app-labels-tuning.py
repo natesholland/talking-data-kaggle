@@ -193,7 +193,7 @@ labels = group_lb.fit_transform(labels)
 def compute_val_loss(percent_features=27, dropout_percentage=0.5):
     losses = []
 
-    skf = StratifiedKFold(Y, n_folds=5, shuffle=True)
+    skf = StratifiedKFold(Y, n_folds=7, shuffle=True)
     # skf = KFold(train.shape[0],n_folds=5, shuffle=True, random_state=seed)
     for ind_tr, ind_te in skf:
         X_train = train_sp[ind_tr]
@@ -284,8 +284,8 @@ def compute_val_loss(percent_features=27, dropout_percentage=0.5):
         early_stopping = EarlyStopping(monitor='val_loss', patience=1, verbose=1, mode='auto')
         plot(model, to_file=path+'%s.png'%model_name.replace('.hdf5',''),show_shapes=True)
 
-        nb_epoch = 25
-        batch_size = 1024
+        nb_epoch = 60
+        batch_size = 2048
         load_model = False
 
         if load_model:
@@ -313,7 +313,7 @@ def compute_val_loss(percent_features=27, dropout_percentage=0.5):
     mean = reduce(lambda x, y: x + y, losses) / len(losses)
     return mean
 
-percentages = [0.3, 0.4, 0.5, 0.6, 0.7]
+percentages = [0.6, 0.7, 0.8]
 val_losses = []
 
 for percentage in percentages:
