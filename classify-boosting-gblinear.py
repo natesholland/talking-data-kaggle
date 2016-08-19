@@ -20,58 +20,7 @@ from sklearn.metrics import log_loss
 
 # import code; code.interact(local=dict(globals(), **locals()))
 
-##################
-#   App Events
-##################
-print("# Read App Events")
-app_ev = pd.read_csv("data/app_events.csv", dtype={'device_id': np.str})
-# remove duplicates(app_id)
-app_ev = app_ev.groupby("event_id")["app_id"].apply(
-    lambda x: " ".join(set("app_id:" + str(s) for s in x)))
-
-##################
-#     Events
-##################
-print("# Read Events")
-events = pd.read_csv("data/events_localized.csv", dtype={'device_id': np.str})
-events["app_id"] = events["event_id"].map(app_ev)
-events['local_hour'] = events['local_hour'].apply(lambda x: "local_hour:" + str(x))
-
-hours_of_day = events[["device_id", "local_hour"]]
-
-hours_of_day = hours_of_day.groupby("device_id")["local_hour"].apply(lambda x: " ".join(str(" ".join(str(s) for s in x)).split(" ")))
-
-hours_of_day = hours_of_day.reset_index(name="local_hour")
-
-hours_of_day = pd.concat([pd.Series(row['device_id'], row['local_hour'].split(' '))
-                    for _, row in hours_of_day.iterrows()]).reset_index()
-
-hours_of_day.columns = ['local_hour', 'device_id']
-
-events = events.dropna()
-
-del app_ev
-
-events = events[["device_id", "app_id"]]
-
-# remove duplicates(app_id)
-events = events.groupby("device_id")["app_id"].apply(
-    lambda x: " ".join(set(str(" ".join(str(s) for s in x)).split(" "))))
-events = events.reset_index(name="app_id")
-
-# expand to multiple rows
-events = pd.concat([pd.Series(row['device_id'], row['app_id'].split(' '))
-                    for _, row in events.iterrows()]).reset_index()
-events.columns = ['app_id', 'device_id']
-
-##################
-#   Phone Brand
-##################
-print("# Read Phone Brand")
-pbd = pd.read_csv("data/phone_brand_device_model.csv",
-                  dtype={'device_id': np.str})
-pbd.drop_duplicates('device_id', keep='first', inplace=True)
-
+path = "data/"
 
 ##################
 #  Train and Test
@@ -86,9 +35,6 @@ test = pd.read_csv("data/gender_age_test.csv",
                    dtype={'device_id': np.str})
 test["group"] = np.nan
 
-import code; code.interact(local=dict(globals(), **locals()))
-
-
 split_len = len(train)
 
 # Group Labels
@@ -97,33 +43,9 @@ lable_group = LabelEncoder()
 Y = lable_group.fit_transform(Y)
 device_id = test["device_id"]
 
-# Concat
-Df = pd.concat((train, test), axis=0, ignore_index=True)
 
-Df = pd.merge(Df, pbd, how="left", on="device_id")
-Df["phone_brand"] = Df["phone_brand"].apply(lambda x: "phone_brand:" + str(x))
-Df["device_model"] = Df["device_model"].apply(
-    lambda x: "device_model:" + str(x))
-
-
-###################
-#  Concat Feature
-###################
-
-f1 = Df[["device_id", "phone_brand"]]   # phone_brand
-f2 = Df[["device_id", "device_model"]]  # device_model
-f3 = events[["device_id", "app_id"]]    # app_id
-f4 = hours_of_day[["device_id", "local_hour"]]
-
-del Df
-
-f1.columns.values[1] = "feature"
-f2.columns.values[1] = "feature"
-f3.columns.values[1] = "feature"
-f4.columns.values[1] = "feature"
-
-FLS = pd.concat((f1, f2, f3, f4), axis=0, ignore_index=True)
-
+FLS = pd.read_csv(path+"fls.csv",
+                  dtype={'device_id': np.str})
 
 ###################
 # User-Item Feature
@@ -159,7 +81,7 @@ X_train, X_val, y_train, y_val = train_test_split(
 #   Feature Sel
 ##################
 print("# Feature Selection")
-selector = SelectPercentile(f_classif, percentile=23)
+selector = SelectPercentile(f_classif, percentile=100)
 
 selector.fit(X_train, y_train)
 
@@ -182,20 +104,20 @@ params = {
     "objective": "multi:softprob",
     "num_class": 12,
     "booster": "gblinear",
-    "max_depth": 6,
+    "max_depth": 5,
     "eval_metric": "mlogloss",
-    "eta": 0.07,
+    "eta": 0.02,
     "silent": 1,
     "alpha": 3,
+    "min_child_weight": 2.7,
+    "gamma": 0,
+    "subsample": 0.5,
+    "colsample_bytree": 0.5
 }
-
 watchlist = [(dtrain, 'train'), (dvalid, 'eval')]
-gbm = xgb.train(params, dtrain, 40, evals=watchlist,
+gbm = xgb.train(params, dtrain, 300, evals=watchlist,
                 early_stopping_rounds=25, verbose_eval=True)
 
-print("# Train")
-dtrain = xgb.DMatrix(train_sp, Y)
-gbm = xgb.train(params, dtrain, 40, verbose_eval=True)
 y_pre = gbm.predict(xgb.DMatrix(test_sp))
 
 # Write results
